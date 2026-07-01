@@ -9,6 +9,7 @@ pipeline {
         string(name: 'BASE_URL', defaultValue: 'http://host.docker.internal:3000', description: 'Base URL da API alvo para os testes k6')
         booleanParam(name: 'RUN_LOAD', defaultValue: true, description: 'Executar load test')
         booleanParam(name: 'RUN_STRESS', defaultValue: true, description: 'Executar stress test')
+        booleanParam(name: 'RUN_SMOKE', defaultValue: true, description: 'Executar smoke test')
         string(name: 'VUS', defaultValue: '20', description: 'VUs para cenário load (override)')
         string(name: 'DURATION', defaultValue: '1m', description: 'Duração para cenário load (override)')
     }
@@ -45,6 +46,9 @@ pipeline {
         }
 
         stage('Smoke') {
+            when {
+                expression { return params.RUN_SMOKE }
+            }
             steps {
                 bat '''
                 docker run --rm -i ^
