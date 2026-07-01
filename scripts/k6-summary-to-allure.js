@@ -42,6 +42,65 @@ function extractFailedThresholds(metrics) {
   return failed;
 }
 
+function readMetricValue(values, aliases) {
+  for (const key of aliases) {
+    if (values[key] !== undefined) {
+      return values[key];
+    }
+  }
+
+  return undefined;
+}
+
+function extractFailedThresholdsWithValues(metrics) {
+  const failed = [];
+
+  for (const [metricName, metricData] of Object.entries(metrics || {})) {
+    const thresholds = metricData && metricData.thresholds ? metricData.thresholds : {};
+    const values = metricData && metricData.values ? metricData.values : {};
+
+    for (const [thresholdName, thresholdStatus] of Object.entries(thresholds)) {
+      const isPassed =
+        typeof thresholdStatus === 'boolean'
+          ? thresholdStatus
+          : thresholdStatus && typeof thresholdStatus.ok === 'boolean'
+            ? thresholdStatus.ok
+            : true;
+
+      if (isPassed) {
+        continue;
+      }
+
+      let actualText = '';
+      if (metricName === 'checks') {
+        const rate = readMetricValue(values, ['rate']);
+        if (rate !== undefined) {
+          actualText = ` (actual rate=${rate})`;
+        }
+      } else if (metricName === 'http_req_failed') {
+        const rate = readMetricValue(values, ['rate']);
+        if (rate !== undefined) {
+          actualText = ` (actual rate=${rate})`;
+        }
+      } else if (metricName === 'http_req_duration') {
+        const p95 = readMetricValue(values, ['p(95)', 'p95']);
+        if (p95 !== undefined) {
+          actualText = ` (actual p95=${p95})`;
+        }
+      } else {
+        const value = readMetricValue(values, ['value', 'rate', 'avg']);
+        if (value !== undefined) {
+          actualText = ` (actual=${value})`;
+        }
+      }
+
+      failed.push(`${metricName}: ${thresholdName}${actualText}`);
+    }
+  }
+
+  return failed;
+}
+
 function formatMetricLine(name, metric) {
   const values = metric && metric.values ? metric.values : {};
   const parts = [];
@@ -58,8 +117,23 @@ function formatMetricLine(name, metric) {
   if (values.max !== undefined) {
     parts.push(`max=${values.max}`);
   }
+  if (values['p(90)'] !== undefined) {
+    parts.push(`p90=${values['p(90)']}`);
+  }
+  if (values['p(95)'] !== undefined) {
+    parts.push(`p95=${values['p(95)']}`);
+  }
   if (values.p95 !== undefined) {
     parts.push(`p95=${values.p95}`);
+  }
+  if (values.value !== undefined) {
+    parts.push(`value=${values.value}`);
+  }
+  if (values.passes !== undefined) {
+    parts.push(`passes=${values.passes}`);
+  }
+  if (values.fails !== undefined) {
+    parts.push(`fails=${values.fails}`);
   }
   if (values.count !== undefined) {
     parts.push(`count=${values.count}`);
@@ -181,6 +255,7 @@ function main() {
     const baseName = path.basename(summaryPath).replace(/-summary\.json$/i, '').replace(/\.json$/i, '');
     const testName = toTitleCase(baseName);
     const failedThresholds = extractFailedThresholds(summary.metrics || {});
+    const failedThresholdsDetailed = extractFailedThresholdsWithValues(summary.metrics || {});
     const status = failedThresholds.length ? 'failed' : 'passed';
     const uuid = crypto.randomUUID();
 
@@ -200,8 +275,8 @@ function main() {
       status,
       stage: 'finished',
       statusDetails: {
-        message: failedThresholds.length
-          ? `Thresholds failing: ${failedThresholds.join('; ')}`
+        message: failedThresholdsDetailed.length
+          ? `Thresholds failing: ${failedThresholdsDetailed.join('; ')}`
           : 'All thresholds passed',
       },
       labels: [

@@ -67,6 +67,9 @@ npm run load
 The Jenkins pipeline converts k6 summary JSON files from `results/` into
 `allure-results/` and then generates an HTML report at `allure-report/`.
 
+Before smoke/load/stress, the pipeline runs `tests/preflight.js` in the same
+`grafana/k6` container context to validate `BASE_URL/api/products`.
+
 Local example (after running k6 and generating summaries):
 
 ```powershell
@@ -81,6 +84,10 @@ Then open `allure-report/index.html` in a browser.
 If all scenarios fail with threshold errors (`checks`, `http_req_failed`,
 `http_req_duration`) at the same time, the target API may be unreachable from
 inside Docker.
+
+The Allure conversion script now includes actual metric values next to each
+failing threshold, helping identify if the issue is connectivity, high error
+rate, or high latency.
 
 Tips:
 

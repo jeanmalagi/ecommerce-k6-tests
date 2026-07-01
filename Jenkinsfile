@@ -47,30 +47,12 @@ pipeline {
 
         stage('Preflight Target API') {
             steps {
-                powershell '''
-                $ErrorActionPreference = 'Stop'
-
-                $targetUrl = "$env:BASE_URL/api/products"
-                $maxRetries = 5
-
-                for ($i = 1; $i -le $maxRetries; $i++) {
-                    try {
-                        $response = Invoke-WebRequest -Uri $targetUrl -UseBasicParsing -TimeoutSec 15
-                        if ($response.StatusCode -eq 200) {
-                            Write-Host "Preflight OK: $targetUrl (HTTP 200)"
-                            exit 0
-                        }
-
-                        Write-Host "Preflight tentativa ${i}/${maxRetries}: HTTP $($response.StatusCode)"
-                    }
-                    catch {
-                        Write-Host "Preflight tentativa ${i}/${maxRetries} falhou: $($_.Exception.Message)"
-                    }
-
-                    Start-Sleep -Seconds 3
-                }
-
-                throw "Falha no preflight HTTP para $targetUrl. Ajuste o parametro BASE_URL para um endpoint acessivel no agente Jenkins."
+                bat '''
+                docker run --rm -i ^
+                  -v "%CD%:/work" ^
+                  -w /work ^
+                  -e BASE_URL=%BASE_URL% ^
+                  grafana/k6 run tests/preflight.js --summary-export=results/preflight-summary.json
                 '''
             }
         }
