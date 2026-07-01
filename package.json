@@ -1,0 +1,11 @@
+{
+  "name": "ecommerce-k6-tests",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Load and stress tests for ecommerce API using k6",
+  "scripts": {
+    "smoke": "k6 run tests/smoke.js",
+    "load": "k6 run tests/load.js",
+    "stress": "k6 run tests/stress.js"
+  }
+}

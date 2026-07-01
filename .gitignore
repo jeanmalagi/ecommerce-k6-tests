@@ -1,0 +1,5 @@
+# k6 local output
+results/
+
+# local env file
+.env
