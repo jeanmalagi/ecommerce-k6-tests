@@ -45,6 +45,24 @@ pipeline {
             }
         }
 
+        stage('Preflight Target API') {
+            steps {
+                bat '''
+                set STATUS=UNKNOWN
+                for /f %%i in ('docker run --rm -i curlimages/curl:8.8.0 -s -S --max-time 15 -o NUL -w "HTTPSTATUS:%%{http_code}" %BASE_URL%/api/products') do set STATUS=%%i
+
+                echo Preflight status: %STATUS%
+                echo %STATUS% | findstr /c:"HTTPSTATUS:200" >nul
+                if errorlevel 1 (
+                    echo Falha ao acessar %BASE_URL%/api/products de dentro do container Docker.
+                    echo Ajuste o parametro BASE_URL para um endpoint acessivel a partir do agente Jenkins.
+                    echo Exemplo comum no mesmo host: http://host.docker.internal:3000
+                    exit /b 1
+                )
+                '''
+            }
+        }
+
         stage('Smoke') {
             when {
                 expression { return params.RUN_SMOKE }

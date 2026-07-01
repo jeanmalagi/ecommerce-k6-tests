@@ -75,3 +75,15 @@ npx --yes allure-commandline@2.34.1 generate allure-results --clean -o allure-re
 ```
 
 Then open `allure-report/index.html` in a browser.
+
+## Troubleshooting CI failures
+
+If all scenarios fail with threshold errors (`checks`, `http_req_failed`,
+`http_req_duration`) at the same time, the target API may be unreachable from
+inside Docker.
+
+Tips:
+
+- In Jenkins, set `BASE_URL` to an address reachable from the Docker container.
+- For API running on the same host as Jenkins agent, try `http://host.docker.internal:3000`.
+- Confirm endpoint health: `GET /api/products` should return HTTP 200 before k6 stages.
