@@ -61,3 +61,17 @@ npm run load
 - `load` simulates sustained usage.
 - `stress` increases pressure until degradation.
 - Threshold failures indicate potential performance bottlenecks.
+
+## Allure report
+
+The Jenkins pipeline converts k6 summary JSON files from `results/` into
+`allure-results/` and then generates an HTML report at `allure-report/`.
+
+Local example (after running k6 and generating summaries):
+
+```powershell
+node scripts/k6-summary-to-allure.js --inputDir results --outputDir allure-results
+npx --yes allure-commandline@2.34.1 generate allure-results --clean -o allure-report --single-file
+```
+
+Then open `allure-report/index.html` in a browser.
