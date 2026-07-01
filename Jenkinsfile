@@ -49,6 +49,7 @@ pipeline {
             steps {
                 bat '''
                 docker run --rm -i ^
+                                    --add-host host.docker.internal:host-gateway ^
                   -v "%CD%:/work" ^
                   -w /work ^
                   -e BASE_URL=%BASE_URL% ^
@@ -64,6 +65,7 @@ pipeline {
             steps {
                 bat '''
                 docker run --rm -i ^
+                                    --add-host host.docker.internal:host-gateway ^
                   -v "%CD%:/work" ^
                   -w /work ^
                   -e BASE_URL=%BASE_URL% ^
@@ -79,6 +81,7 @@ pipeline {
             steps {
                 bat '''
                 docker run --rm -i ^
+                                    --add-host host.docker.internal:host-gateway ^
                   -v "%CD%:/work" ^
                   -w /work ^
                   -e BASE_URL=%BASE_URL% ^
@@ -96,6 +99,7 @@ pipeline {
             steps {
                 bat '''
                 docker run --rm -i ^
+                                    --add-host host.docker.internal:host-gateway ^
                   -v "%CD%:/work" ^
                   -w /work ^
                   -e BASE_URL=%BASE_URL% ^

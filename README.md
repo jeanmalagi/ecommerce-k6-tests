@@ -93,4 +93,5 @@ Tips:
 
 - In Jenkins, set `BASE_URL` to an address reachable from the Docker container.
 - For API running on the same host as Jenkins agent, try `http://host.docker.internal:3000`.
+- Do not use `http://localhost:3000` as `BASE_URL` when k6 runs in Docker, because `localhost` points to the container itself.
 - Confirm endpoint health: `GET /api/products` should return HTTP 200 before k6 stages.
