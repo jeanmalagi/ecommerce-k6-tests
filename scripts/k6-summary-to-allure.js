@@ -42,6 +42,93 @@ function extractFailedThresholds(metrics) {
   return failed;
 }
 
+function resolveMetricReference(values, reference) {
+  const normalized = reference.trim();
+
+  if (values[normalized] !== undefined) {
+    return values[normalized];
+  }
+
+  if (normalized === 'rate') {
+    if (values.rate !== undefined) {
+      return values.rate;
+    }
+
+    if (values.value !== undefined) {
+      return values.value;
+    }
+  }
+
+  if (normalized === 'count' && values.count !== undefined) {
+    return values.count;
+  }
+
+  return undefined;
+}
+
+function evaluateThresholdExpression(values, thresholdExpression) {
+  const match = thresholdExpression
+    .trim()
+    .match(/^([a-zA-Z_][a-zA-Z0-9_]*(?:\([0-9]+\))?)\s*(<=|>=|==|<|>)\s*(-?[0-9]+(?:\.[0-9]+)?)$/);
+
+  if (!match) {
+    return null;
+  }
+
+  const reference = match[1];
+  const operator = match[2];
+  const expectedValue = Number(match[3]);
+  const actualValue = Number(resolveMetricReference(values, reference));
+
+  if (!Number.isFinite(actualValue) || !Number.isFinite(expectedValue)) {
+    return null;
+  }
+
+  let passed;
+  if (operator === '<') {
+    passed = actualValue < expectedValue;
+  } else if (operator === '<=') {
+    passed = actualValue <= expectedValue;
+  } else if (operator === '>') {
+    passed = actualValue > expectedValue;
+  } else if (operator === '>=') {
+    passed = actualValue >= expectedValue;
+  } else {
+    passed = actualValue === expectedValue;
+  }
+
+  return {
+    passed,
+    actualValue,
+    expectedValue,
+    reference,
+  };
+}
+
+function thresholdPassed(metricValues, thresholdName, thresholdStatus) {
+  const evaluated = evaluateThresholdExpression(metricValues || {}, thresholdName || '');
+  if (evaluated) {
+    return {
+      passed: evaluated.passed,
+      actualValue: evaluated.actualValue,
+      reference: evaluated.reference,
+    };
+  }
+
+  const passedByStatus =
+    typeof thresholdStatus === 'boolean'
+      ? thresholdStatus
+      : thresholdStatus && typeof thresholdStatus.ok === 'boolean'
+        ? thresholdStatus.ok
+        : true;
+
+  return {
+    passed: passedByStatus,
+    actualValue: undefined,
+    reference: undefined,
+  };
+}
+
 function readMetricValue(values, aliases) {
   for (const key of aliases) {
     if (values[key] !== undefined) {
@@ -52,20 +139,30 @@ function readMetricValue(values, aliases) {
   return undefined;
 }
 
+function getMetricValues(metricData) {
+  if (!metricData || typeof metricData !== 'object') {
+    return {};
+  }
+
+  if (metricData.values && typeof metricData.values === 'object') {
+    return metricData.values;
+  }
+
+  const values = { ...metricData };
+  delete values.thresholds;
+  return values;
+}
+
 function extractFailedThresholdsWithValues(metrics) {
   const failed = [];
 
   for (const [metricName, metricData] of Object.entries(metrics || {})) {
     const thresholds = metricData && metricData.thresholds ? metricData.thresholds : {};
-    const values = metricData && metricData.values ? metricData.values : {};
+    const values = getMetricValues(metricData);
 
     for (const [thresholdName, thresholdStatus] of Object.entries(thresholds)) {
-      const isPassed =
-        typeof thresholdStatus === 'boolean'
-          ? thresholdStatus
-          : thresholdStatus && typeof thresholdStatus.ok === 'boolean'
-            ? thresholdStatus.ok
-            : true;
+      const thresholdResult = thresholdPassed(values, thresholdName, thresholdStatus);
+      const isPassed = thresholdResult.passed;
 
       if (isPassed) {
         continue;
@@ -73,22 +170,30 @@ function extractFailedThresholdsWithValues(metrics) {
 
       let actualText = '';
       if (metricName === 'checks') {
-        const rate = readMetricValue(values, ['rate']);
+        const rate = thresholdResult.actualValue !== undefined
+          ? thresholdResult.actualValue
+          : readMetricValue(values, ['rate', 'value']);
         if (rate !== undefined) {
           actualText = ` (actual rate=${rate})`;
         }
       } else if (metricName === 'http_req_failed') {
-        const rate = readMetricValue(values, ['rate']);
+        const rate = thresholdResult.actualValue !== undefined
+          ? thresholdResult.actualValue
+          : readMetricValue(values, ['rate', 'value']);
         if (rate !== undefined) {
           actualText = ` (actual rate=${rate})`;
         }
       } else if (metricName === 'http_req_duration') {
-        const p95 = readMetricValue(values, ['p(95)', 'p95']);
+        const p95 = thresholdResult.actualValue !== undefined
+          ? thresholdResult.actualValue
+          : readMetricValue(values, ['p(95)', 'p95']);
         if (p95 !== undefined) {
           actualText = ` (actual p95=${p95})`;
         }
       } else {
-        const value = readMetricValue(values, ['value', 'rate', 'avg']);
+        const value = thresholdResult.actualValue !== undefined
+          ? thresholdResult.actualValue
+          : readMetricValue(values, ['value', 'rate', 'avg']);
         if (value !== undefined) {
           actualText = ` (actual=${value})`;
         }
@@ -102,7 +207,7 @@ function extractFailedThresholdsWithValues(metrics) {
 }
 
 function formatMetricLine(name, metric) {
-  const values = metric && metric.values ? metric.values : {};
+  const values = getMetricValues(metric);
   const parts = [];
 
   if (values.rate !== undefined) {
@@ -256,7 +361,7 @@ function main() {
     const testName = toTitleCase(baseName);
     const failedThresholds = extractFailedThresholds(summary.metrics || {});
     const failedThresholdsDetailed = extractFailedThresholdsWithValues(summary.metrics || {});
-    const status = failedThresholds.length ? 'failed' : 'passed';
+    const status = failedThresholdsDetailed.length ? 'failed' : 'passed';
     const uuid = crypto.randomUUID();
 
     const metricsSummary = buildMetricsSummary(summary.metrics || {});

@@ -1,0 +1,8 @@
+{
+  "name": "Jenkins",
+  "type": "jenkins",
+  "buildName": "k6-performance-tests",
+  "buildUrl": "",
+  "buildOrder": "",
+  "reportName": "k6 performance report"
+}

@@ -1,0 +1,64 @@
+{
+  "uuid": "a7760314-2bf4-408c-92b7-716dc8638517",
+  "historyId": "cdb7f10a826f7e600fdf1695ec996789",
+  "testCaseId": "cdb7f10a826f7e600fdf1695ec996789",
+  "name": "k6 Smoke",
+  "fullName": "k6.smoke",
+  "status": "failed",
+  "stage": "finished",
+  "statusDetails": {
+    "message": "Thresholds failing: http_req_duration: p(95)<1000; http_req_failed: rate<0.02; checks: rate>0.95"
+  },
+  "labels": [
+    {
+      "name": "framework",
+      "value": "k6"
+    },
+    {
+      "name": "language",
+      "value": "javascript"
+    },
+    {
+      "name": "suite",
+      "value": "Performance Tests"
+    },
+    {
+      "name": "parentSuite",
+      "value": "ecommerce-k6-tests"
+    },
+    {
+      "name": "host",
+      "value": "local"
+    }
+  ],
+  "links": [],
+  "steps": [],
+  "attachments": [
+    {
+      "name": "k6 metrics summary",
+      "source": "a7760314-2bf4-408c-92b7-716dc8638517-metrics.txt",
+      "type": "text/plain"
+    },
+    {
+      "name": "k6 raw summary",
+      "source": "a7760314-2bf4-408c-92b7-716dc8638517-raw-summary.json",
+      "type": "application/json"
+    }
+  ],
+  "parameters": [
+    {
+      "name": "BASE_URL",
+      "value": ""
+    },
+    {
+      "name": "VUS",
+      "value": ""
+    },
+    {
+      "name": "DURATION",
+      "value": ""
+    }
+  ],
+  "start": 1782927309997,
+  "stop": 1782927309998
+}
